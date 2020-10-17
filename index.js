@@ -459,7 +459,7 @@ async function convert({svg, width, height, scale = 1 }) {
     } else {
         throw new Error('SVG element open tag not found in input. Check the SVG input');
     }
-    const fileName = `/tmp/convert-svg-${Math.random()}.html`;
+    const fileName = `${tmpdir}/convert-svg-${Math.random()}.html`;
     require('fs').writeFileSync(fileName, html);
     browser = browser || await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']});
     const page = await browser.newPage();
