@@ -5,6 +5,8 @@ const _  = require('lodash');
 const Jimp = require('jimp');
 const SVGO = require('svgo');
 const addText = require('./addText');
+const os = require('os');
+const tmpdir = os.tmpdir();
 
 const maxSize = 16000; //original SVG files should be up to this size
 const debugInfo = function() {
@@ -57,11 +59,11 @@ async function svgo({content, title}) {
                 }
             }
         }
-        
+
         ]
     })).optimize(content);
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s1.svg', result.data);
+        require('fs').writeFileSync(`${tmpdir}/s1.svg`, result.data);
     }
 
     let rootUpdated = false;
@@ -207,7 +209,7 @@ async function svgo({content, title}) {
         }]
     })).optimize(result.data);
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s2.svg', result.data);
+        require('fs').writeFileSync(`${tmpdir}/s2.svg`, result.data);
     }
 
     if (rootStyle) {
@@ -233,7 +235,7 @@ async function svgo({content, title}) {
         })).optimize(result.data);
     }
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s3.svg', result.data);
+        require('fs').writeFileSync(`${tmpdir}/s3.svg`, result.data);
     }
 
     if (title) {
@@ -258,7 +260,7 @@ async function svgo({content, title}) {
         })).optimize(result.data);
     }
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s4.svg', result.data);
+        require('fs').writeFileSync(`${tmpdir}/s4.svg`, result.data);
     }
     return result.data;
 }
@@ -468,7 +470,7 @@ async function convert({svg, width, height, scale = 1 }) {
 
     const totalWidth = width * scale;
     const totalHeight = height * scale;
-    
+
     // await page.waitForSelector('svg');
     // await page.evaluate(`
         // const el = document.querySelector('svg');
@@ -524,18 +526,18 @@ async function getEstimatedViewbox({svg, scale}) {
         const data = await new Promise(function(resolve) {
             image.getBuffer('image/png', function(err, data) {
                 resolve(data);
-            }); 
+            });
         });
         require('fs').writeFileSync(fileName, data);
     }
     if (process.env.DEBUG_SVG) {
-        await save('/tmp/r01.png');
+        await save(`${tmpdir}/r01.png`);
     }
 
 
     const newViewbox = await getCropRegionWithWhiteBackgroundDetection({svg: svgCopy, image, allowScaling: true});
     if (newViewbox === false) { // too small size
-        return await getEstimatedViewbox({svg, scale: scale * 4});    
+        return await getEstimatedViewbox({svg, scale: scale * 4});
     }
 
     const border = 2 / scale;
@@ -601,12 +603,12 @@ async function whiteToTransparent(image) {
         const data = await new Promise(function(resolve) {
             image.getBuffer('image/png', function(err, data) {
                 resolve(data);
-            }); 
+            });
         });
         require('fs').writeFileSync(fileName, data);
     }
     if (process.env.DEBUG_SVG) {
-        await save('/tmp/r03.png');
+        await save(`${tmpdir}/r03.png`);
     }
     debugInfo({c1, c2});
 }
@@ -681,7 +683,7 @@ async function autoCropSvg(svg, options) {
         }
     }
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s5.svg', svg);
+        require('fs').writeFileSync(`${tmpdir}/s5.svg`, svg);
     }
     // get a maximum possible viewbox which covers the whole region;
     const width = maxSize;
@@ -705,7 +707,7 @@ async function autoCropSvg(svg, options) {
     // estimated viewBox has a size which is dividable by 20,
     //  because previewScale is 0.05 (x1/20)
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s6.svg', svg);
+        require('fs').writeFileSync(`${tmpdir}/s6.svg`, svg);
     }
 
     const scale = getScale(estimatedViewbox);
@@ -727,12 +729,12 @@ async function autoCropSvg(svg, options) {
         const data = await new Promise(function(resolve) {
             image.getBuffer('image/png', function(err, data) {
                 resolve(data);
-            }); 
+            });
         });
         require('fs').writeFileSync(fileName, data);
     }
     if (process.env.DEBUG_SVG) {
-        await save('/tmp/r1.png', image);
+        await save(`${tmpdir}/r1.png`, image);
     }
 
     if (process.env.DEBUG_SVG) {
@@ -751,7 +753,7 @@ async function autoCropSvg(svg, options) {
 
     if (process.env.DEBUG_SVG) {
         // image.crop(false);
-        // await save('/tmp/r3.png');
+        // await save(`${tmpdir}/r3.png`);
         debugInfo({newViewbox, scale});
     }
     // add a bit of padding around the svg
@@ -783,7 +785,7 @@ async function autoCropSvg(svg, options) {
     // apply a new viewbox to the svg
     const newSvg = await updateViewbox(svg, newViewbox);
     if (process.env.DEBUG_SVG) {
-        require('fs').writeFileSync('/tmp/s5.svg', newSvg);
+        require('fs').writeFileSync(`${tmpdir}/s5.svg`, newSvg);
     }
 
     // validate svg for common errors
@@ -810,16 +812,16 @@ async function autoCropSvg(svg, options) {
         const s2 = await updateViewbox(newSvg, viewBoxToCompare);
         const originalPng = await tryToConvert({svg: newSvg, scale, width: newViewbox.width, height: newViewbox.height});
         const doublePng = await tryToConvert({svg: s2, scale, width: viewBoxToCompare.width, height: viewBoxToCompare.height });
-        debugInfo('Screenshots created'); 
+        debugInfo('Screenshots created');
         const originalImg = await Jimp.read(originalPng);
         const doubleImg = await Jimp.read(doublePng);
-        debugInfo('Images loaded'); 
-        require('fs').writeFileSync('/tmp/r3.png', originalPng);
-        require('fs').writeFileSync('/tmp/r4.png', doublePng);
+        debugInfo('Images loaded');
+        require('fs').writeFileSync(`${tmpdir}/r3.png`, originalPng);
+        require('fs').writeFileSync(`${tmpdir}/r4.png`, doublePng);
         const originalViewbox = await getCropRegionWithWhiteBackgroundDetection({image: originalImg});
-        debugInfo('originalViewbox calculated'); 
+        debugInfo('originalViewbox calculated');
         const doubleViewbox = await getCropRegionWithWhiteBackgroundDetection({image: doubleImg});
-        debugInfo('doubleViewbox calculated'); 
+        debugInfo('doubleViewbox calculated');
         const maxDiffWidth = Math.abs(originalViewbox.width - doubleViewbox.width);
         const maxDiffHeight = Math.abs(originalViewbox.height - doubleViewbox.height);
         if (maxDiffWidth > 2 || maxDiffHeight > 2) {
@@ -842,7 +844,7 @@ async function autoCropSvg(svg, options) {
         newOptions = JSON.parse(JSON.stringify(options));
         newOptions.caption = '';
         newOptions.fast = true;
-        require('fs').writeFileSync('/tmp/text.svg', svgWithText);
+        require('fs').writeFileSync(`${tmpdir}/text.svg`, svgWithText);
         svgWithText = (await autoCropSvg(svgWithText, newOptions)).result;
     } else {
         svgWithText = newSvg;

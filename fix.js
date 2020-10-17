@@ -2,6 +2,8 @@
 const _ = require('lodash');
 const path = require('path');
 const autoCropSvg  = require('./index');
+const os = require('os');
+const tmpdir = os.tmpdir();
 
 function getInputFiles() {
     if (process.argv[2] === '--recursive') {
@@ -66,7 +68,7 @@ async function main() {
 
     const compareContent = require('fs').readFileSync('./compare.html', 'utf-8');
     const newContent = compareContent.replace(/const files = (.*)$/m, `const files = ${JSON.stringify(result)}`);
-    require('fs').writeFileSync('/tmp/autocrop-compare.html', newContent);
+    require('fs').writeFileSync(`${tmpdir}/autocrop-compare.html`, newContent);
     console.info('Report has been written to file:///tmp/autocrop-compare.html');
 }
 main().catch(console.info);
